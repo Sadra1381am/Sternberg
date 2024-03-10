@@ -49,7 +49,6 @@ def draw_text(text, font, color, x, y):
     text_rect.center = (x, y)
     screen.blit(text_surface, text_rect)
 
-
 # Function to simulate displaying a number set
 def simulate_display_number_set(number_set):
     screen.fill(WHITE)
@@ -61,13 +60,11 @@ def simulate_display_number_set(number_set):
     pygame.display.flip()
     time.sleep(DISPLAY_NUMBER_TIME)
 
-
 # Function to simulate displaying a blank screen
 def simulate_display_blank():
     screen.fill(WHITE)
     pygame.display.flip()
     time.sleep(BLANK_TIME)  # Display blank screen for specified duration
-
 
 # Function to simulate displaying a probe
 def simulate_display_probe(probe):
@@ -76,7 +73,6 @@ def simulate_display_probe(probe):
     pygame.display.flip()
     time.sleep(PROBE_DISPLAY_TIME)  # Display probe for specified duration
 
-
 # Function to simulate handling user response
 def simulate_handle_response(probe):
     response = None
@@ -84,18 +80,15 @@ def simulate_handle_response(probe):
     while response is None:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_COMMA:
+                if event.unicode == ',':
                     response = ','
-                elif event.key == pygame.K_PERIOD:
+                elif event.unicode == '.':
                     response = '.'
         # Check response time
-        if time.time() - start_time <= 4:  # If response within 4 seconds
+        if time.time() - start_time >= PROBE_DISPLAY_TIME:  # If response within probe display time
             response = ','  # Consider it incorrect
     return response
 
-
-
-# Function to simulate the Sternberg Short-Term Memory Task
 # Function to simulate the Sternberg Short-Term Memory Task
 def simulate_sternberg_task(num_trials):
     correct_responses = 0
