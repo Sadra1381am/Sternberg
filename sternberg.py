@@ -2,6 +2,8 @@ import pygame
 import random
 import time
 import statistics
+import csv
+import matplotlib.pyplot as plt
 
 # Colors
 WHITE = (255, 255, 255)
@@ -80,20 +82,21 @@ def simulate_handle_response(probe):
     while response is None:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-                if event.unicode == ',':
-                    response = ','
-                elif event.unicode == '.':
-                    response = '.'
+                if event.unicode == '.':
+                    response = True
+                elif event.unicode == ',':
+                    response = False
         # Check response time
         if time.time() - start_time >= PROBE_DISPLAY_TIME:  # If response within probe display time
-            response = ','  # Consider it incorrect
-    return response
+            response = False  # Consider it incorrect
+    return response, time.time() - start_time
 
 # Function to simulate the Sternberg Short-Term Memory Task
 def simulate_sternberg_task(num_trials):
     correct_responses = 0
     incorrect_responses = 0
     response_times = []
+    task_details = []
     
     for current_trial in range(1, num_trials + 1):
         if current_trial <= 4:
@@ -114,34 +117,98 @@ def simulate_sternberg_task(num_trials):
         probe = random.choice(number_set)
         simulate_display_probe(probe)
         
-        start_time = time.time()
-        response = simulate_handle_response(probe)
-        end_time = time.time()
-        response_time = end_time - start_time
+        response, response_time = simulate_handle_response(probe)
         response_times.append(response_time)
         
-        if (response == '.' and probe in number_set) or (response == ',' and probe not in number_set):
+        if response == (probe in number_set):
             correct_responses += 1
         else:
             incorrect_responses += 1
 
-    return correct_responses, incorrect_responses, response_times
+        task_details.append((number_set, probe, response, probe in number_set))
 
-# Function to display final result
-def simulate_display_result(correct_responses, incorrect_responses, response_times):
-    screen.fill(WHITE)
-    draw_text("Task Results", font, FONT_COLOR, WIDTH // 2, HEIGHT // 4)
-    draw_text(f"Correct: {correct_responses}", font, FONT_COLOR, WIDTH // 2, HEIGHT // 2)
-    draw_text(f"Incorrect: {incorrect_responses}", font, FONT_COLOR, WIDTH // 2, HEIGHT // 2 + FONT_SIZE)
-    
-    accuracy_rate = (correct_responses / (correct_responses + incorrect_responses)) * 100
-    draw_text(f"Accuracy Rate: {accuracy_rate:.2f}%", font, FONT_COLOR, WIDTH // 2, HEIGHT // 2 + 2 * FONT_SIZE)
-    
-    average_response_time = statistics.mean(response_times)
-    draw_text(f"Average Response Time: {average_response_time:.2f} seconds", font, FONT_COLOR, WIDTH // 2, HEIGHT // 2 + 3 * FONT_SIZE)
+    return correct_responses, incorrect_responses, response_times, task_details
 
-    pygame.display.flip()
-    time.sleep(20)  # Display results for 5 seconds
+# Function to calculate statistical features based on response times
+def calculate_statistics(response_times):
+    mean = statistics.mean(response_times)
+    median = statistics.median(response_times)
+    stdev = statistics.stdev(response_times)
+    return mean, median, stdev
+
+# Function to export the results to a CSV file and update it every time the program is run
+def export_results_to_csv(correct_responses, incorrect_responses, response_times, task_details, filename='result.csv'):
+    try:
+        with open(filename, 'r') as csvfile:
+            # Count the number of runs in the CSV file
+            num_runs = sum(1 for line in csvfile if 'Index Task' in line)
+    except FileNotFoundError:
+        # If the file does not exist, initialize the run count to 0
+        num_runs = 0
+
+    index_run = num_runs + 1  # Increment the index run
+    index_task = 1
+    with open(filename, 'a', newline='') as csvfile:
+        fieldnames = ['Index Run', 'Index Task', 'Shown Number', 'Probe Number', 'User Answer', 'Correct Answer', 'Accuracy Rate', 'Mean Response Time', 'Median Response Time', 'Standard Deviation']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        # Write header if the file is empty
+        if csvfile.tell() == 0:
+            writer.writeheader()
+
+        for i, (number_set, probe, response, correct) in enumerate(task_details):
+            accuracy_rate = correct_responses / (correct_responses + incorrect_responses) * 100 if correct_responses + incorrect_responses > 0 else 0
+            mean, median, stdev = calculate_statistics(response_times)
+            writer.writerow({'Index Run': index_run,
+                             'Index Task': index_task,
+                             'Shown Number': number_set,
+                             'Probe Number': probe,
+                             'User Answer': response,
+                             'Correct Answer': correct,
+                             'Accuracy Rate': f'{accuracy_rate:.2f}%',
+                             'Mean Response Time': mean,
+                             'Median Response Time': median,
+                             'Standard Deviation': stdev})
+            index_task += 1
+
+# Function to plot the data using matplotlib based on the CSV file
+def plot_data(filename='result.csv'):
+    data = {'Index Run': [], 'Index Task': [], 'Shown Number': [], 'Probe Number': [], 'User Answer': [], 'Correct Answer': [], 'Accuracy Rate': [], 'Mean Response Time': [], 'Median Response Time': [], 'Standard Deviation': []}
+    with open(filename, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            data['Index Run'].append(int(row['Index Run']))
+            data['Index Task'].append(int(row['Index Task']))
+            data['Shown Number'].append(row['Shown Number'])
+            data['Probe Number'].append(row['Probe Number'])
+            data['User Answer'].append(row['User Answer'])
+            data['Correct Answer'].append(row['Correct Answer'])
+            data['Accuracy Rate'].append(float(row['Accuracy Rate'].rstrip('%')))
+            data['Mean Response Time'].append(float(row['Mean Response Time']))
+            data['Median Response Time'].append(float(row['Median Response Time']))
+            data['Standard Deviation'].append(float(row['Standard Deviation']))
+
+    plt.figure(figsize=(12, 8))
+    plt.subplot(2, 1, 1)
+    for i in range(1, max(data['Index Run']) + 1):
+        indices = [idx for idx, val in enumerate(data['Index Run']) if val == i]
+        plt.plot([data['Index Task'][idx] for idx in indices], [data['Correct Answer'][idx] for idx in indices], label=f'Run {i} - Correct Answer')
+        plt.plot([data['Index Task'][idx] for idx in indices], [data['User Answer'][idx] for idx in indices], label=f'Run {i} - User Answer')
+    plt.xlabel('Index Task')
+    plt.ylabel('Responses')
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    for i in range(1, max(data['Index Run']) + 1):
+        indices = [idx for idx, val in enumerate(data['Index Run']) if val == i]
+        plt.plot([data['Index Task'][idx] for idx in indices], [data['Mean Response Time'][idx] for idx in indices], label=f'Run {i} - Mean Response Time')
+        plt.plot([data['Index Task'][idx] for idx in indices], [data['Median Response Time'][idx] for idx in indices], label=f'Run {i} - Median Response Time')
+        plt.plot([data['Index Task'][idx] for idx in indices], [data['Standard Deviation'][idx] for idx in indices], label=f'Run {i} - Standard Deviation')
+    plt.xlabel('Index Task')
+    plt.ylabel('Time (seconds)')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
 
 # Display instructions
 screen.fill(WHITE)
@@ -162,19 +229,26 @@ pygame.display.update()
 time.sleep(10)
 
 # Main game loop
-while True:  # Run indefinitely
-    # Set font
-    font = pygame.font.Font(None, FONT_SIZE)
+# Set font
+font = pygame.font.Font(None, FONT_SIZE)
 
-    # Run the simulation with specified parameters
-    num_trials = 12  # Number of trials to run
-    correct_responses, incorrect_responses, response_times = simulate_sternberg_task(num_trials)
+# Run the simulation with specified parameters
+num_trials = 12  # Number of trials to run
+correct_responses, incorrect_responses, response_times, task_details = simulate_sternberg_task(num_trials)
 
-    # Display the final result
-    simulate_display_result(correct_responses, incorrect_responses, response_times)
+# Calculate statistical features based on response times
+mean, median, stdev = calculate_statistics(response_times)
 
-    # Keep the program running
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
+# Export the results to a CSV file
+export_results_to_csv(correct_responses, incorrect_responses, response_times, task_details)
+
+# Display the final result
+print(f"Correct: {correct_responses}, Incorrect: {incorrect_responses}")
+print(f"Mean Response Time: {mean}, Median Response Time: {median}, Standard Deviation: {stdev}")
+
+# Plot the data using matplotlib based on the CSV file
+plot_data()
+
+# Close Pygame and stop running
+pygame.quit()
+exit()
