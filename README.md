@@ -6,7 +6,12 @@ The Sternberg Memory Task is a psychological experiment used to study short-term
 ## Installation
 1. Clone the repository: `git clone https://github.com/Sadra1381am/Strenberg.git`
 2. Navigate to the project directory: `cd Sternberg`
-3. Install the required dependencies: `pip install pygame`
+3. Install the required dependencies:
+   - Install Pygame: `pip install pygame`
+   - Install Matplotlib: `pip install matplotlib`
+   - Install NumPy: `pip install numpy`
+
+Make sure to install these dependencies before running the main script to ensure that the program runs correctly.
 
 ## Usage
 1. Run the main script: `python sternberg.py`
