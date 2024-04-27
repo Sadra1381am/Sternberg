@@ -14,13 +14,13 @@ RED = (255, 0, 0)
 pygame.init()
 
 # Display settings
-WIDTH = 1400
-HEIGHT = 800
+WIDTH = 1490
+HEIGHT = 1000
 FPS = 60
 
 # Font settings
 FONT_SIZE = 32
-FONT_COLOR = BLACK
+FONT_COLOR = WHITE
 
 # Timing settings
 DISPLAY_NUMBER_TIME = 4  # Display time for numbers (in seconds)
@@ -53,7 +53,7 @@ def draw_text(text, font, color, x, y):
 
 # Function to simulate displaying a number set
 def simulate_display_number_set(number_set):
-    screen.fill(WHITE)
+    screen.fill(BLACK)
     num_count = len(number_set)
     for i, number in enumerate(number_set):
         x_offset = WIDTH // 2
@@ -64,13 +64,13 @@ def simulate_display_number_set(number_set):
 
 # Function to simulate displaying a blank screen
 def simulate_display_blank():
-    screen.fill(WHITE)
+    screen.fill(BLACK)
     pygame.display.flip()
     time.sleep(BLANK_TIME)  # Display blank screen for specified duration
 
 # Function to simulate displaying a probe
 def simulate_display_probe(probe):
-    screen.fill(WHITE)
+    screen.fill(BLACK)
     draw_text(f"Probe: {probe}", font, FONT_COLOR, WIDTH // 2, HEIGHT // 2)
     pygame.display.flip()
     time.sleep(PROBE_DISPLAY_TIME)  # Display probe for specified duration
@@ -211,7 +211,7 @@ def plot_data(filename='result.csv'):
     plt.show()
 
 # Display instructions
-screen.fill(WHITE)
+screen.fill(BLACK)
 rules_text = [
     "Welcome to the Sternberg Short-Term Memory Task!",
     "Instructions:",
@@ -223,7 +223,7 @@ rules_text = [
 
 font_small = pygame.font.Font(None, 24)
 for i, line in enumerate(rules_text):
-    text = font_small.render(line, True, BLACK)
+    text = font_small.render(line, True, WHITE)
     screen.blit(text, (WIDTH // 2 - text.get_width() // 2, 50 + i * 30))
 pygame.display.update()
 time.sleep(10)
